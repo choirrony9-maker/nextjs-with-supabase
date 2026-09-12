@@ -1,51 +1,52 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
-import Link from "next/link";
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let role = null
+  let fullName = null
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', user.id)
+      .single()
+    if (profile) {
+      role = profile.role
+      fullName = profile.full_name
+    }
+  }
+
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? <EnvVarWarning /> : <AuthButton />}
-          </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
-        </div>
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
+      <h1 className="text-4xl font-bold mb-4">Perpustakaan Soal SD</h1>
+      <p className="text-lg mb-8">Selamat datang di sistem bank soal untuk kelas 1-6.</p>
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
-      </div>
+      {user ? (
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-md">Halo, <strong>{fullName || user.email}</strong> ({role})</p>
+          {role === 'guru' && (
+            <Link href="/guru" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 w-64">
+              Masuk Dashboard Guru
+            </Link>
+          )}
+          <Link href="/latihan" className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 w-64">
+            Mulai Latihan Soal
+          </Link>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <Link href="/login" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 w-64">
+            Login
+          </Link>
+          <Link href="/signup" className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 w-64">
+            Daftar
+          </Link>
+        </div>
+      )}
     </main>
-  );
+  )
 }
